@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body style="margin:0;background:#000">
+<canvas id="c" style="width:100vw;height:100vh;display:block"></canvas>
+<script>
+  const canvas = document.getElementById('c')
+  const ctx = canvas.getContext('2d')
+  canvas.width = 1280
+  canvas.height = 720
+
+  ctx.fillStyle = 'lime'
+  ctx.fillRect(0, 0, 1280, 720)
+  ctx.fillStyle = 'red'
+  ctx.font = '60px sans-serif'
+  ctx.fillText('CANVAS WORKS', 200, 360)
+
+  const img = new Image()
+  img.onload = () => {
+    ctx.drawImage(img, 0, 0, 1280, 720)
+    ctx.fillStyle = 'white'
+    ctx.font = '40px sans-serif'
+    ctx.fillText('IMAGE LOADED', 200, 100)
+  }
+  img.onerror = () => {
+    ctx.fillStyle = 'orange'
+    ctx.font = '40px sans-serif'
+    ctx.fillText('IMAGE FAILED', 200, 100)
+  }
+  img.src = '/frames/gravity/frame-001.jpg'
+</script>
+</body>
+</html>
