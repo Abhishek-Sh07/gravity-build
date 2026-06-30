@@ -1,25 +1,27 @@
 import Header from '@/components/Header'
+import HeroVideoBackground from '@/components/HeroVideoBackground'
 import ImageSequenceHero from '@/components/ImageSequenceHero'
 import HeroSection from '@/components/HeroSection'
-import ServicesSection from '@/components/ServicesSection'
-import FeaturedWorkSubstanceSection from '@/components/FeaturedWorkSubstanceSection'
-import ProcessSection from '@/components/ProcessSection'
-import AboutStudioSection from '@/components/AboutStudioSection'
-import ProofSection from '@/components/ProofSection'
+import ClientsSection from '@/components/ClientsSection'
+import WorkV2Section from '@/components/WorkV2Section'
+import TrustedBrandsSection from '@/components/TrustedBrandsSection'
+import ApartSection from '@/components/ApartSection'
+import BenefitsSection from '@/components/BenefitsSection'
 import ContactCTA from '@/components/ContactCTA'
 import Footer from '@/components/Footer'
 
 export default function Home() {
   return (
     <main>
+      <HeroVideoBackground />
       <Header />
       <ImageSequenceHero />
       <HeroSection />
-      <ServicesSection />
-      <FeaturedWorkSubstanceSection />
-      <ProcessSection />
-      <AboutStudioSection />
-      <ProofSection />
+      <ClientsSection />
+      <WorkV2Section />
+      <TrustedBrandsSection />
+      <ApartSection />
+      <BenefitsSection />
       <ContactCTA />
       <Footer />
     </main>

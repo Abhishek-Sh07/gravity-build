@@ -53,9 +53,19 @@ export default function ContactCTA() {
         </p>
 
         <div className="cta-buttons">
-          <button className="cta-btn-primary">Start a Project</button>
-          <a href="mailto:hello@gravitystudio.com" className="cta-btn-secondary">
-            Send Email
+          <button className="cta-btn-primary gb-button gb-magnetic" type="button" data-cursor="button">
+            <span className="gb-button__border" aria-hidden="true" />
+            <span className="gb-button__ripple" aria-hidden="true"><span /></span>
+            <span className="gb-button__title">
+              <span data-text="Start a Project">Start a Project</span>
+            </span>
+          </button>
+          <a href="mailto:hello@gravitybuild.com" className="cta-btn-secondary gb-button gb-button--ghost gb-magnetic" data-cursor="button">
+            <span className="gb-button__border" aria-hidden="true" />
+            <span className="gb-button__ripple" aria-hidden="true"><span /></span>
+            <span className="gb-button__title">
+              <span data-text="Send Email">Send Email</span>
+            </span>
           </a>
         </div>
 
@@ -63,8 +73,8 @@ export default function ContactCTA() {
         <div className="cta-card">
           <div className="cta-card-row">
             <span className="cta-card-key">Email</span>
-            <a href="mailto:hello@gravitystudio.com" className="cta-card-val">
-              hello@gravitystudio.com
+            <a href="mailto:hello@gravitybuild.com" className="cta-card-val">
+              hello@gravitybuild.com
             </a>
           </div>
           <div className="cta-card-divider" />

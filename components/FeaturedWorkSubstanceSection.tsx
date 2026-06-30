@@ -119,19 +119,29 @@ export default function FeaturedWorkSubstanceSection() {
           })
         }
 
-        // ── Description fade ──────────────────────────────────────────────
+        // ── Description fade (opacity only — y belongs to its parallax scrub) ──
         gsap.from(row.querySelector('.fw-desc'), {
-          opacity: 0, y: 16, duration: 1, ease: 'power3.out',
+          opacity: 0, duration: 1, ease: 'power3.out',
           scrollTrigger: { trigger: row, start: 'top 66%', toggleActions: 'play none none reverse' },
         })
 
-        // ── Image blur→clear entrance (shader "shift" approximation) ─────
+        // ── Image entrance: curtain clip-reveal + settle-from-zoom ────────
+        // The frame un-clips upward while the image inside eases down from
+        // an overscaled state — the classic editorial "window" reveal.
         if (imgWrap) {
           gsap.fromTo(
             imgWrap,
-            { filter: 'blur(12px)', scale: 1.04 },
+            { clipPath: 'inset(100% 0% 0% 0%)' },
             {
-              filter: 'blur(0px)', scale: 1, duration: 1.2, ease: 'power3.out',
+              clipPath: 'inset(0% 0% 0% 0%)', duration: 1.25, ease: 'power4.inOut',
+              scrollTrigger: { trigger: row, start: 'top 80%', toggleActions: 'play none none reverse' },
+            }
+          )
+          gsap.fromTo(
+            imgWrap.querySelector('.fw-img-stack'),
+            { scale: 1.3 },
+            {
+              scale: 1, duration: 1.7, ease: 'power3.out',
               scrollTrigger: { trigger: row, start: 'top 80%', toggleActions: 'play none none reverse' },
             }
           )
@@ -161,13 +171,37 @@ export default function FeaturedWorkSubstanceSection() {
           if (content) {
             gsap.fromTo(
               content,
-              { y: 60 },
+              { y: 80 },
               {
-                y: -60, ease: 'none',
+                y: -80, ease: 'none',
                 scrollTrigger: { trigger: row, start: 'top bottom', end: 'bottom top', scrub: 1.5 },
               }
             )
           }
+
+          // Title: fastest text layer (reference factor ≈ 2.25) — leads the image.
+          // Moves in `y` px on top of the entrance reveal's yPercent, so the
+          // two tweens compose without fighting over the same property.
+          if (title) {
+            gsap.fromTo(
+              title,
+              { y: 70 },
+              {
+                y: -70, ease: 'none',
+                scrollTrigger: { trigger: row, start: 'top bottom', end: 'bottom top', scrub: 1.2 },
+              }
+            )
+          }
+
+          // Description: its own slower text factor — trails the title
+          gsap.fromTo(
+            row.querySelector('.fw-desc'),
+            { y: 34 },
+            {
+              y: -34, ease: 'none',
+              scrollTrigger: { trigger: row, start: 'top bottom', end: 'bottom top', scrub: 1.8 },
+            }
+          )
 
           // Image inner: additional layer of depth within the image frame
           if (imgIn) {
@@ -185,9 +219,9 @@ export default function FeaturedWorkSubstanceSection() {
           if (!mobile && bgNum) {
             gsap.fromTo(
               bgNum,
-              { y: -10 },
+              { y: -55 },
               {
-                y: 10, ease: 'none',
+                y: 55, ease: 'none',
                 scrollTrigger: { trigger: row, start: 'top bottom', end: 'bottom top', scrub: 3.0 },
               }
             )
@@ -209,13 +243,49 @@ export default function FeaturedWorkSubstanceSection() {
       ScrollTrigger.refresh()
     }, sectionRef)
 
-    return () => ctx.revert()
+    /*
+     * ── Velocity breath ─────────────────────────────────────────────────────
+     * The image frame swells very slightly with lerped scroll velocity
+     * (max ~5%) and settles back to rest when the scroll stops:
+     *   vel   = lerp(vel, scrollDelta, 0.1)
+     *   scale = 1 + min(|vel|, 70) * k
+     * Uniform scale on the clip frame — no shear, no color artifacts, just
+     * a soft "pulse" that makes fast scrolling feel alive.
+     */
+    let velTick: (() => void) | null = null
+    const section = sectionRef.current
+    if (!reduced && section) {
+      const wraps  = imgWrapRefs.current.filter((el): el is HTMLDivElement => !!el)
+      const scales = wraps.map(el => gsap.quickSetter(el, 'scale'))
+
+      let lastY = window.scrollY
+      let vel   = 0
+      const k = mobile ? 0.0005 : 0.0008
+
+      velTick = () => {
+        const y = window.scrollY
+        vel   = vel + (y - lastY - vel) * 0.1   // lerp(vel, delta, 0.1)
+        lastY = y
+
+        // Skip DOM writes while the section is fully offscreen
+        const rect = section.getBoundingClientRect()
+        if (rect.bottom < 0 || rect.top > window.innerHeight) return
+
+        const s = 1 + Math.min(Math.abs(vel), 70) * k
+        for (let j = 0; j < scales.length; j++) scales[j](s)
+      }
+      gsap.ticker.add(velTick)
+    }
+
+    return () => {
+      if (velTick) gsap.ticker.remove(velTick)
+      ctx.revert()
+    }
   }, [])
 
   return (
     <section
       ref={sectionRef}
-      style={{ background: '#0c0f13' }}
       id="featured-work"
     >
 
@@ -374,7 +444,7 @@ export default function FeaturedWorkSubstanceSection() {
                 overflow:   'hidden',
                 aspectRatio: '3/2',
                 position:   'relative',
-                willChange: 'filter, transform',
+                willChange: 'clip-path',
               }}
             >
               <div
@@ -386,20 +456,26 @@ export default function FeaturedWorkSubstanceSection() {
                   willChange: 'transform',
                 }}
               >
-                <img
-                  src={project.image}
-                  alt={project.title}
-                  loading="lazy"
-                  style={{
-                    position:  'absolute',
-                    inset:     0,
-                    width:     '100%',
-                    height:    '100%',
-                    objectFit: 'cover',
-                    display:   'block',
-                  }}
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
+                {/* Image stack — entrance settle-zoom + velocity skew target */}
+                <div
+                  className="fw-img-stack"
+                  style={{ position: 'absolute', inset: 0, willChange: 'transform' }}
+                >
+                  <img
+                    src={project.image}
+                    alt={project.title}
+                    loading="lazy"
+                    style={{
+                      position:  'absolute',
+                      inset:     0,
+                      width:     '100%',
+                      height:    '100%',
+                      objectFit: 'cover',
+                      display:   'block',
+                    }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
                 {/* Cinematic vignette — matches reference's dark image treatment */}
                 <div
                   style={{

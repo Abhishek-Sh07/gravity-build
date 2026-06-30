@@ -15,6 +15,7 @@ export default function LenisProvider({ children }: { children: React.ReactNode 
 
     const lenis = new Lenis({ smoothWheel: true })
     lenisRef.current = lenis
+    ;(window as unknown as { __lenis?: Lenis }).__lenis = lenis
 
     lenis.on('scroll', ScrollTrigger.update)
 

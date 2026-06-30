@@ -3,8 +3,55 @@
 import { useRef, useEffect } from 'react'
 import gsap from 'gsap'
 
+// Last word cycles through these (same length keeps the line width stable)
+const ROTATING_WORDS = ['STUDIO', 'AGENCY', 'VISION']
+
 export default function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
+
+  // ── Rotating last word ────────────────────────────────────────────────────
+  // Slot-machine column: one masked column of words steps upward on a single
+  // repeating timeline (a duplicate of the first word at the end makes the
+  // wrap seamless). One target, one timeline — survives hot reloads cleanly.
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const col = section.querySelector<HTMLElement>('.hs-rot-col')
+    if (!col) return
+    const rows = ROTATING_WORDS.length + 1   // + duplicated first word
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ repeat: -1 })
+      for (let i = 1; i < rows; i++) {
+        tl.to(col, {
+          yPercent: -(100 / rows) * i,
+          duration: 0.7,
+          ease:     'power3.inOut',
+        }, i * 2.8 - 0.7)
+      }
+      tl.set(col, { yPercent: 0 })   // duplicate row 0 → real row 0, invisible jump
+    }, section)
+
+    return () => ctx.revert()
+  }, [])
+
+  // ── Keep the inline video alive (autoplay can be suspended by the
+  //    browser on tab switches or low-power mode) ───────────────────────────
+  useEffect(() => {
+    const videos = sectionRef.current?.querySelectorAll('video')
+    if (!videos || videos.length === 0) return
+
+    const resume = () => {
+      if (document.visibilityState !== 'visible') return
+      videos.forEach((video) => {
+        if (video.paused) video.play().catch(() => {})
+      })
+    }
+    resume()
+    document.addEventListener('visibilitychange', resume)
+    return () => document.removeEventListener('visibilitychange', resume)
+  }, [])
 
   // ── GSAP entrance animation ──────────────────────────────────────────────
   useEffect(() => {
@@ -48,46 +95,34 @@ export default function HeroSection() {
   }, [])
 
   return (
+    // Overlaps the image-sequence wrapper's last 200vh (net flow height 0).
+    // The inner section sticks to the viewport for that whole stretch, so by
+    // the time the sequence's end-of-scrub zoom begins the text is already
+    // aligned and stationary — the reveal reads as the camera passing through
+    // the monitor glass, not a section scrolling up from below.
+    <div
+      className="relative w-full"
+      style={{ height: '200svh', marginTop: '-200svh', zIndex: 1 }}
+    >
     <section
       ref={sectionRef}
-      className="relative w-full overflow-hidden bg-[#010508]"
-      style={{ height: '100svh' }}
+      className="w-full overflow-hidden"
+      style={{
+        height: '100svh',
+        position: 'sticky',
+        top: 0,
+        // Background stays transparent — the black body background shows
+        // through here and in the sections below.
+      }}
     >
 
-      {/* ── Bordered rounded hero card — plain dark background ─────────────── */}
-      <div
-        className="absolute overflow-hidden bg-[#010508]"
-        style={{
-          inset:        14,
-          borderRadius: 20,
-          border:       '1px solid rgba(255,255,255,0.07)',
-        }}
-      >
+      {/* ── Full-bleed inner — blends into the sections around it ────────────
+           .hs-stage is driven by ImageSequenceHero during the monitor zoom:
+           it fades/scales in so the copy emerges from inside the screen. */}
+      <div className="hs-stage absolute inset-0 overflow-hidden" style={{ willChange: 'transform, opacity' }}>
 
-        {/* ── Top meta row ─────────────────────────────────────────────── */}
-        <div
-          className="absolute top-0 left-0 right-0 flex justify-between items-center z-10"
-          style={{ padding: 'clamp(20px, 2.8vw, 40px) clamp(22px, 3.2vw, 48px)' }}
-        >
-          <span
-            className="hs-meta font-sans font-semibold uppercase tracking-[0.26em]
-                       text-white/22 leading-none"
-            style={{ fontSize: 10.5 }}
-          >
-            KTM / NP
-          </span>
-          <div
-            className="hs-meta flex items-center gap-2.5 font-sans font-semibold
-                       uppercase text-white/16"
-            style={{ fontSize: 10.5, letterSpacing: '0.2em' }}
-          >
-            <span>Branding</span>
-            <span style={{ opacity: 0.35 }}>·</span>
-            <span>UI/UX</span>
-            <span style={{ opacity: 0.35 }}>·</span>
-            <span>Dev</span>
-          </div>
-        </div>
+        {/* Blurred video backdrop now lives in the page-level fixed layer
+            (HeroVideoBackground) so it stays put while content scrolls over it. */}
 
         {/* ── Main headline ─────────────────────────────────────────────── */}
         <div
@@ -97,7 +132,7 @@ export default function HeroSection() {
           <h1
             className="text-center font-extrabold uppercase text-white"
             style={{
-              fontSize:      'clamp(46px, 9.2vw, 145px)',
+              fontSize:      'clamp(40px, 7.8vw, 122px)',
               lineHeight:     0.91,
               letterSpacing: '-0.026em',
               userSelect:    'none',
@@ -118,16 +153,26 @@ export default function HeroSection() {
                 <span
                   className="hs-thumb inline-flex flex-shrink-0 align-middle"
                   style={{
-                    width:        'clamp(70px, 10.2vw, 162px)',
-                    height:       'clamp(45px, 6.7vw, 106px)',
+                    width:        'clamp(60px, 8.6vw, 137px)',
+                    height:       'clamp(39px, 5.7vw, 90px)',
                     borderRadius: '0.085em',
                     overflow:     'hidden',
                     position:     'relative',
                   }}
                 >
+                  {/* gradient stays visible until the video paints */}
                   <span
                     className="absolute inset-0"
-                    style={{ background: 'linear-gradient(148deg, #1c1508 0%, #402c0a 42%, #0e0804 100%)' }}
+                    style={{ background: 'linear-gradient(148deg, #07304a 0%, #0a5a70 42%, #041527 100%)' }}
+                  />
+                  <video
+                    src="/videos/herobox-sm.mp4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                   <span
                     className="absolute inset-0"
@@ -135,42 +180,40 @@ export default function HeroSection() {
                   />
                 </span>
 
-                <span>STUDIO</span>
+                {/* Rotating word — masked column, stepped upward by GSAP */}
+                <span
+                  className="hs-rotator"
+                  style={{
+                    display:  'inline-block',
+                    overflow: 'hidden',
+                    height:   '0.91em',
+                  }}
+                >
+                  <span className="hs-rot-col block" style={{ willChange: 'transform' }}>
+                    {[...ROTATING_WORDS, ROTATING_WORDS[0]].map((word, i) => (
+                      <span key={i} className="block" style={{ height: '0.91em' }}>
+                        {word}
+                      </span>
+                    ))}
+                  </span>
+                </span>
               </span>
             </span>
           </h1>
         </div>
 
-        {/* ── Bottom meta ──────────────────────────────────────────────── */}
+        {/* ── Scroll indicator ───────────────────────────────────────────── */}
         <div
-          className="absolute bottom-0 left-0 right-0 flex justify-between items-end z-10"
-          style={{ padding: 'clamp(20px, 2.8vw, 40px) clamp(22px, 3.2vw, 48px)' }}
+          className="hs-scroll absolute left-1/2 flex flex-col items-center z-20"
+          style={{ bottom: 4, transform: 'translateX(-50%)', gap: 5 }}
         >
-          <span
-            className="hs-meta font-sans font-semibold uppercase tracking-[0.24em] text-white/20 leading-none"
-            style={{ fontSize: 10.5 }}
-          >
-            Est. 2020
-          </span>
-          <span
-            className="hs-meta font-sans font-semibold uppercase tracking-[0.2em] text-white/14 leading-none text-right"
-            style={{ fontSize: 10.5 }}
-          >
-            Premium Creative Studio
-          </span>
+          <div className="rounded-full" style={{ width: 5, height: 5, background: 'rgba(255,255,255,0.22)' }} />
+          <div style={{ width: 1, height: 44, background: 'linear-gradient(to bottom, rgba(255,255,255,0.22), transparent)' }} />
         </div>
 
       </div>
 
-      {/* ── Scroll indicator ─────────────────────────────────────────────── */}
-      <div
-        className="hs-scroll absolute left-1/2 flex flex-col items-center z-20"
-        style={{ bottom: 4, transform: 'translateX(-50%)', gap: 5 }}
-      >
-        <div className="rounded-full" style={{ width: 5, height: 5, background: 'rgba(255,255,255,0.22)' }} />
-        <div style={{ width: 1, height: 44, background: 'linear-gradient(to bottom, rgba(255,255,255,0.22), transparent)' }} />
-      </div>
-
     </section>
+    </div>
   )
 }

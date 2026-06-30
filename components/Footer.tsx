@@ -11,7 +11,11 @@ export default function Footer() {
       <div className="footer-inner">
 
         <div className="footer-brand">
-          <span>Gravity Studio</span>
+          <img
+            src="/images/brand/gravity-lockup-horizontal-white.svg"
+            alt="Gravity Studio"
+            className="footer-brand-img"
+          />
         </div>
 
         <nav className="footer-nav" aria-label="Footer navigation">
